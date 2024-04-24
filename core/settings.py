@@ -29,8 +29,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'djongo',
     'api',
-    'djongo'
+    'ecommerce'
 ]
 
 REST_FRAMEWORK = {
@@ -45,7 +46,7 @@ REST_FRAMEWORK = {
 }
 from datetime import timedelta
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=600),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
@@ -85,10 +86,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'notes_db',
-        'HOST': 'localhost',
-        'PORT': 27017,
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3'
     }
 }
 
