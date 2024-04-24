@@ -5,9 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.permissions import IsAuthenticated
 from .models import Product, Order
-from .serializers import ProductSerializer, OrderSerializer
-from django.contrib.auth.models import User
-
+from .serializers import ProductSerializer, OrderSerializer, CartSerializer
+from .models import Cart, Order
 
 
 @permission_classes([IsAuthenticated])
@@ -29,7 +28,7 @@ def product_list(request):
 @api_view(['GET', 'POST'])
 def order_list(request):
     if request.method == 'GET':
-        orders = Order.objects.all()
+        orders = Order.objects.filter(user=request.user)
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
     
@@ -65,3 +64,60 @@ def order_detail(request, pk):
         return Response(serializer.data)
     else:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET', 'POST'])
+def cart_list(request):
+    if request.method == 'GET':
+        user = request.user
+        cart_items = Cart.objects.filter(user=user)
+        serializer = CartSerializer(cart_items, many=True)
+        return Response({
+            'Data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def cart_detail(request, pk):
+    cart_item = get_object_or_404(Cart, pk=pk)
+    if request.method == 'GET':
+        serializer = CartSerializer(cart_item)
+        return Response(serializer.data)
+    
+@permission_classes([IsAuthenticated])
+@api_view(['POST'])
+def add_to_cart(request):
+    if request.method == 'POST':
+        user = request.user
+        order_id = request.data.get('order')
+        # Retrieve the order object
+        order = get_object_or_404(Order, pk=order_id)
+
+        # Check if the order already exists in the user's cart
+        existing_cart_item = Cart.objects.filter(user=user, order=order).first()
+
+        if existing_cart_item:
+            # If the order already exists in the cart, you can update the quantity or perform any other actions
+            return Response({"Message": "Item already exists in the cart"}, status=status.HTTP_409_CONFLICT)
+        else:
+            # If the order doesn't exist in the cart, create a new cart item
+            cart_item = Cart.objects.create(user=user, order=order)
+            serializer = CartSerializer(cart_item)
+            return Response({
+                'Created': 'The Cart created successfully and here is your data',
+                'Data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+@permission_classes([IsAuthenticated])
+@api_view(['DELETE'])
+def cart_item_delete(request, pk):
+    cart_item = get_object_or_404(Cart, pk=pk)
+    # Check if the user has permission to delete this cart item
+    if cart_item.user != request.user:
+        return Response({"error": "You do not have permission to delete this cart item"}, status=status.HTTP_403_FORBIDDEN)
+
+    # Perform delete operation
+    cart_item.delete()
+
+    return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

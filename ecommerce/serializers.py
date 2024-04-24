@@ -24,4 +24,17 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_username(self, obj):
         return obj.user.username if obj.user else None
     
+
+class CartSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    total_cost = serializers.SerializerMethodField()
     
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'username', 'order', 'total_cost']
+
+    def get_username(self, obj):
+        return obj.user.username if obj.user else None 
+    
+    def get_total_cost(self, obj):
+        return obj.get_total_cost() if hasattr(obj, 'get_total_cost') else None

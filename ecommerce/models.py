@@ -41,3 +41,16 @@ class Order(models.Model):
             # Handle any exceptions and return None or an appropriate default value
             return None
     
+class Cart(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    
+    def __str__(self) -> str:
+        return f'Cart for: {self.user.username} -> {self.order.product_id.name}'
+    
+    def save(self, *args, **kwargs):
+        self.order.save()
+        super().save(*args, **kwargs)
+    
+    def get_total_cost(self):
+        return f'$ {self.order.get_total_cost()}'
