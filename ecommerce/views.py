@@ -72,10 +72,16 @@ def cart_list(request):
     if request.method == 'GET':
         user = request.user
         cart_items = Cart.objects.filter(user=user)
-        serializer = CartSerializer(cart_items, many=True)
-        return Response({
-            'Data': serializer.data
-        }, status=status.HTTP_200_OK)
+        count_cart = cart_items.count()
+        if count_cart > 0:
+            serializer = CartSerializer(cart_items, many=True)
+            return Response({
+                'Data': serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'Empty': 'Your cart is empty now!'
+            }, status=status.HTTP_200_OK)
 
 @permission_classes([IsAuthenticated])
 @api_view(['GET'])
