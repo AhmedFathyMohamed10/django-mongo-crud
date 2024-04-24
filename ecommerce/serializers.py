@@ -38,3 +38,13 @@ class CartSerializer(serializers.ModelSerializer):
     
     def get_total_cost(self, obj):
         return obj.get_total_cost() if hasattr(obj, 'get_total_cost') else None
+    
+
+class PaymentSerializer(serializers.ModelSerializer):
+    username = serializers.ReadOnlyField(source='user.username')
+    order_id = serializers.ReadOnlyField(source='order.id')
+
+    class Meta:
+        model = Payment
+        fields = ['id', 'user', 'username', 'order', 'order_id', 'amount', 'transaction_id', 'payment_date']
+        read_only_fields = ['amount', 'transaction_id']

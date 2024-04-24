@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.permissions import IsAuthenticated
 from .models import Product, Order
-from .serializers import ProductSerializer, OrderSerializer, CartSerializer
-from .models import Cart, Order
+from .serializers import ProductSerializer, OrderSerializer, CartSerializer, PaymentSerializer
+from .models import Cart, Order, Payment
 
 
 @permission_classes([IsAuthenticated])
@@ -67,7 +67,7 @@ def order_detail(request, pk):
     
 
 @permission_classes([IsAuthenticated])
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 def cart_list(request):
     if request.method == 'GET':
         user = request.user
@@ -127,3 +127,49 @@ def cart_item_delete(request, pk):
     cart_item.delete()
 
     return Response({"message": "Cart item deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+import uuid
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def make_payment(request, order_id):
+    user = request.user
+
+    # Retrieve the order
+    try:
+        order = Order.objects.get(id=order_id, user=user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if payment already exists for the order
+    if Payment.objects.filter(order=order).exists():
+        return Response({"error": "Payment already made for this order"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Generate a random transaction_id
+    transaction_id = uuid.uuid4().hex
+
+    # Create the payment
+    payment_data = {
+        'user': user.id,
+        'order': order.id,
+        'transaction_id': transaction_id  # Assign the generated transaction_id
+    }
+    serializer = PaymentSerializer(data=payment_data)
+    if serializer.is_valid():
+        serializer.save(transaction_id=transaction_id)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Search for the payment transaction id
+@api_view(['POST'])
+def search_payment(request):
+    transaction_id = request.data.get('transaction_id', None)
+
+    if not transaction_id:
+        return Response({"error": "Transaction ID is required?"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        payment = Payment.objects.get(transaction_id=transaction_id)
+        serializer = PaymentSerializer(payment)
+        return Response(serializer.data)
+    except Payment.DoesNotExist:
+        return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
